@@ -31,7 +31,7 @@ app.post("/text-summarize", async (req: Request, res: Response) => {
         const responses = await processInBatches(chunks, 5, length);
 
         const fullSummary = responses.map(r => r.summary).filter(Boolean).join("\n");
-        const summaryOfSummaries = await fetchSummaryWithRetry(fullSummary, "long");
+        const summaryOfSummaries = await fetchSummaryWithRetry(fullSummary, length);
 
         res.status(200).json({
             summary: summaryOfSummaries.summary,
