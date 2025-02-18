@@ -47,3 +47,11 @@ By try an error, I found that the maximun chunk I could handle was 5000. Having 
 
 #### Batching with retry.
 Processing chunks secuently was not performant. So I decided to process the chunks in parallel. First time I tried I reached my rate limit (30000 TPM), so I decided to batch in groups of 5 and retry using the time openAI allowed me. The maximum token I could make gpt-4o to handle was 5000 and my rate limit was 30000 TPM, that´s why I process the chunks in batches of 5.
+
+###m Limitations.
+1. When processing really large files, rate limit is exceeded anyways. We can still process the document, but it takes a lot of time.
+2. I could have improven the chunk strategy more. First, I could have divided the chunks by chapter, full stops, elilpsis, etc...
+3. Error handling: openAI sends the precise codes of the errors in the message, I could extract them and send more precise errors to the Frontend.
+4. Have more than one strategy. I have built the backend somewhat using the strategy patter, so depending of use cases we could implement and use other strategies.
+
+
