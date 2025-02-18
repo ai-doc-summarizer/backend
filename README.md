@@ -14,7 +14,8 @@ https://nodejs.org/es/download
     ```bash
     npm install
     ```
-2. Run server:
+3. Create .env with your OPEN_AI_KEY
+4. Run server:
     ```bash
     npm run start
     ```
