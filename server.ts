@@ -1,28 +1,24 @@
-import OpenAI from "openai";
-import { z } from "zod";
-import { zodResponseFormat } from "openai/helpers/zod";
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import multer from "multer";
 import pdfParse from "pdf-parse";
+import { processInBatches } from "./src/utils/utils";
+import { fetchSummaryWithRetry } from "./src/services/openai";
+import { slidingWindowChunkingStrategy } from "./src/strategies/slidingWindowChunkingStrategy";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 const app: Express = express();
 
 app.use(cors());
+app.use(express.urlencoded({ extended: true }));
+
 app.use(express.json());
 
-const openai = new OpenAI();
 const upload = multer({ storage: multer.memoryStorage() });
-
-const SummarySchema = z.object({
-    summary: z.string(),
-    key_points: z.array(z.string()),
-});
 
 app.post("/text-summarize", async (req: Request, res: Response) => {
     try {
@@ -30,19 +26,18 @@ app.post("/text-summarize", async (req: Request, res: Response) => {
 
         if (!text) res.status(400).json({ error: "Text required "});
 
-        const completion = await openai.beta.chat.completions.parse({
-            model: "gpt-4o-2024-08-06",
-            messages: [
-                { role: "system", content: `Summarize with key points with ${length} length.` },
-                { role: "user", content: text },
-            ],
-            response_format: zodResponseFormat(SummarySchema, "summary_output"),
-        });
+        const chunks = slidingWindowChunkingStrategy(text);
 
-        const summary = completion.choices[0].message.parsed;
-        
-        res.status(200).json(summary);
-    } catch ( error ) {
+        const responses = await processInBatches(chunks, 5, length);
+
+        const fullSummary = responses.map(r => r.summary).filter(Boolean).join("\n");
+        const summaryOfSummaries = await fetchSummaryWithRetry(fullSummary, "long");
+
+        res.status(200).json({
+            summary: summaryOfSummaries.summary,
+            key_points: summaryOfSummaries.key_points
+        });
+    } catch (error) {
         res.status(500).json({
             error: (error instanceof Error) ? error.message : "Error while summarazing" 
         });
@@ -51,9 +46,8 @@ app.post("/text-summarize", async (req: Request, res: Response) => {
 
 app.post("/doc-summarize", upload.single("file"), async (req: Request, res: Response) => {
     try {
-        const { length } = req.body.length || "medium";
+        const length = req.body.length || "medium";
         const file = req.file;
-
         if (!file){
             res.status(400).json({ error: "There is no file "});
             return;
@@ -69,18 +63,18 @@ app.post("/doc-summarize", upload.single("file"), async (req: Request, res: Resp
         const data = await pdfParse(pdfBuffer!!);
         const text = data.text;
 
-        const completion = await openai.beta.chat.completions.parse({
-            model: "gpt-4o-2024-08-06",
-            messages: [
-                { role: "system", content: `Summarize with key points with ${length} length.` },
-                { role: "user", content: text },
-            ],
-            response_format: zodResponseFormat(SummarySchema, "summary_output"),
-        });
+        const chunks = slidingWindowChunkingStrategy(text);
 
-        const summary = completion.choices[0].message.parsed;
-        
-        res.status(200).json(summary);
+        const responses = await processInBatches(chunks, 5, length);
+
+        const fullSummary = responses.map(r => r.summary).filter(Boolean).join("\n");
+
+        const summaryOfSummaries = await fetchSummaryWithRetry(fullSummary, length);
+
+        res.status(200).json({
+            summary: summaryOfSummaries.summary,
+            key_points: summaryOfSummaries.key_points
+        });
 
     } catch (error) {
         res.status(500).json({
@@ -89,7 +83,4 @@ app.post("/doc-summarize", upload.single("file"), async (req: Request, res: Resp
     }
 })
 
-app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
-
-
-
+app.listen(PORT, () => console.log(`Server ruinning on ${PORT}`));
