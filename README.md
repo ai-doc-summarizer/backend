@@ -47,17 +47,3 @@ By try an error, I found that the maximun chunk I could handle was 5000. Having 
 
 #### Batching with retry.
 Processing chunks secuently was not performant. So I decided to process the chunks in parallel. First time I tried I reached my rate limit (30000 TPM), so I decided to batch in groups of 5 and retry using the time openAI allowed me. The maximum token I could make gpt-4o to handle was 5000 and my rate limit was 30000 TPM, that´s why I process the chunks in batches of 5.
-
-const completion = await openai.beta.chat.completions.parse({
-    model: "gpt-4o-2024-08-06",
-    messages: [
-        { 
-            role: "system", 
-            content: `Provide a clear and concise summary highlighting the key points of the given text. 
-                      Ensure the summary is well-structured, preserves the original meaning, and fits within ${length} characters. 
-                      Use bullet points if appropriate and avoid unnecessary details.` 
-        },
-        { role: "user", content: chunk },
-    ],
-    response_format: zodResponseFormat(SummarySchema, "summary_output"),
-});
