@@ -14,7 +14,10 @@ export async function fetchSummaryWithRetry(chunk: string, length: string, retri
             const completion = await openai.beta.chat.completions.parse({
                 model: "gpt-4o-2024-08-06",
                 messages: [
-                    { role: "system", content: `Summarize with key points with ${length} length.` },
+                    { role: "system", content: 
+                        `You are an expert summarizing text. You provide clear and concise summaries, preserving
+                        original meaning. Provide a ${length} summary.`
+                    },
                     { role: "user", content: chunk },
                 ],
                 response_format: zodResponseFormat(SummarySchema, "summary_output"),
