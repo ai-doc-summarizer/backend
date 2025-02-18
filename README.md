@@ -12,7 +12,7 @@ https://nodejs.org/es/download
     ```
 2. Install Node Dependencies:
     ```bash
-    npm run install
+    npm install
     ```
 2. Run server:
     ```bash
