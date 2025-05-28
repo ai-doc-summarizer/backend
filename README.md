@@ -45,7 +45,6 @@ I used this technique to create overlapping chunks. So I can provide some contex
 Chunking strategy:
 By try an error, I found that the maximun chunk I could handle was 5000. Having this in mind, I devided the text in 5 parts. So that, we can decide chunksize depending of the size of the document.
 
-
 #### Batching with retry.
 Processing chunks secuently was not performant. So I decided to process the chunks in parallel. First time I tried I reached my rate limit (30000 TPM), so I decided to batch in groups of 5 and retry using the time openAI allowed me. The maximum token I could make gpt-4o to handle was 5000 and my rate limit was 30000 TPM, that´s why I process the chunks in batches of 5.
 
